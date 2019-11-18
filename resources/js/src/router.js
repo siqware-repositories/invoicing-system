@@ -58,6 +58,45 @@ const router = new Router({
                         rule: 'editor'
                     }
                 },
+                {
+                    path: '/settings',
+                    name: 'setting',
+                    component: () => import('./views/setting/Setting'),
+                    meta: {
+                        breadcrumb: [
+                            { title: 'ទំព័រដើម', url: '/' },
+                            { title: 'ការកំណត់', active: true },
+                        ],
+                        pageTitle: 'ការកំណត់',
+                        rule: 'editor'
+                    }
+                },
+                {
+                    path: '/supplier',
+                    name: 'supplier',
+                    component: () => import('./views/supplier/Supplier.vue'),
+                    meta: {
+                        breadcrumb: [
+                            { title: 'ទំព័រដើម', url: '/' },
+                            { title: 'អ្នកផ្គត់ផ្គង់', active: true },
+                        ],
+                        pageTitle: 'អ្នកផ្គត់ផ្គង់',
+                        rule: 'editor'
+                    }
+                },
+                {
+                    path: '/customer',
+                    name: 'customer',
+                    component: () => import('./views/customer/Customer.vue'),
+                    meta: {
+                        breadcrumb: [
+                            { title: 'ទំព័រដើម', url: '/' },
+                            { title: 'អតិថិជន', active: true },
+                        ],
+                        pageTitle: 'អតិថិជន',
+                        rule: 'editor'
+                    }
+                },
               {
                 path: '/page2',
                 name: 'page-2',

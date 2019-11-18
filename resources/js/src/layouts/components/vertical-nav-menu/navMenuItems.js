@@ -32,6 +32,25 @@ export default [
     slug: "user",
     icon: "UserIcon",
   },
+    {
+    url: "/supplier",
+    name: "អ្នកផ្គត់ផ្គង់",
+    slug: "supplier",
+    icon: "UserIcon",
+  },
+{
+    url: "/customer",
+    name: "អតិថិជន",
+    slug: "customer",
+    icon: "UserIcon",
+  },
+
+  {
+    url: "/settings",
+    name: "ការកំណត់",
+    slug: "setting",
+    icon: "UserIcon",
+  },
   {
     url: "/page2",
     name: "Page 2",

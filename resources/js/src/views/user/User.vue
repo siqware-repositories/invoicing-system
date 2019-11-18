@@ -6,7 +6,7 @@
                 <div class="w-full sm:w-1/1 md:w-1/1 lg:w-1/4 xl:w-1/4 flex sm:justify-center lg:justify-start">
                     <div class="btn-group mb-2">
                         <vs-button @click="popupActive=true" color="success">បន្ថែម</vs-button>
-                        <vs-button color="warning">កែប្រែ</vs-button>
+                        <vs-button :disabled="editableAble" @click="editUser" color="warning">កែប្រែ</vs-button>
                         <vs-button @click="removeUser" :disabled="deleteAble" color="danger">លុប</vs-button>
                     </div>
                 </div>
@@ -21,20 +21,20 @@
                         </div>
                         <vs-dropdown-menu>
 
-                            <vs-dropdown-item v-if="totalRecords>20"
+                            <vs-dropdown-item v-if="totalUsers>20"
                                               @click="gridApi.paginationSetPageSize(20);currentItemsPerPage=20">
                                 <span>20</span>
                             </vs-dropdown-item>
-                            <vs-dropdown-item v-if="totalRecords>50"
+                            <vs-dropdown-item v-if="totalUsers>50"
                                               @click="gridApi.paginationSetPageSize(50);currentItemsPerPage=50">
                                 <span>50</span>
                             </vs-dropdown-item>
-                            <vs-dropdown-item v-if="totalRecords>100"
+                            <vs-dropdown-item v-if="totalUsers>100"
                                               @click="gridApi.paginationSetPageSize(100);currentItemsPerPage=100">
                                 <span>100</span>
                             </vs-dropdown-item>
                             <vs-dropdown-item
-                                    @click="gridApi.paginationSetPageSize(totalRecords);currentItemsPerPage=totalRecords">
+                                    @click="gridApi.paginationSetPageSize(totalRecords);currentItemsPerPage=totalUsers">
                                 <span>ទាំងអស់</span>
                             </vs-dropdown-item>
                         </vs-dropdown-menu>
@@ -126,21 +126,36 @@
                         </div>
                     </div>
                     <div class="vx-row mb-6">
-                        <div class="vx-col w-full">
+                        <div class="vx-col w-full" v-if="!isEdit">
                             <vs-input type="password" v-validate="'required'" name="password" class="w-full"
                                       icon-pack="feather" icon="icon-lock" icon-no-border label-placeholder="លេខសម្អាត់"
                                       v-model="user.password"/>
                             <span class="text-danger text-sm" v-show="errors.has('password')">{{ errors.first('password') }}</span>
                         </div>
+                        <div class="vx-col w-full" v-if="isEdit">
+                            <vs-input type="password" name="password" class="w-full"
+                                      icon-pack="feather" icon="icon-lock" icon-no-border label-placeholder="លេខសម្អាត់"
+                                      v-model="user.password"/>
+                        </div>
                     </div>
                     <div class="centerx">
-                        <vs-upload text="ដាក់ប្រូហ្វាល" :limit="1" automatic :show-upload-button="false" fileName="file"
-                                   action="api/file-upload" @on-delete="removeFile" @on-success="uploadFile"/>
+                        <image-upload
+                                :upload-url="'file.upload'"
+                                @get-image-path="setThumb"
+                                :image-src="user.profile?user.profile:placeholder"
+                                class="mb-2"/>
                     </div>
+                    <vs-divider/>
                     <div class="vx-row">
                         <div class="vx-col w-full">
-                            <vs-button @click.prevent="submitForm" type="relief" class="mr-3 mb-2">បង្កើត</vs-button>
-                            <vs-button @click.prevent="clearField" color="warning" type="relief" class="mb-2" @click="">
+                            <vs-button v-if="!isEdit" @click.prevent="submitForm" type="relief" class="mr-3 mb-2">
+                                បង្កើត
+                            </vs-button>
+                            <vs-button v-if="isEdit" @click.prevent="updateUser" type="relief" class="mr-3 mb-2">
+                                កែប្រែ
+                            </vs-button>
+                            <vs-button v-if="!isEdit" @click.prevent="resetField" color="warning" type="relief"
+                                       class="mb-2" @click="">
                                 ចាកចេញ
                             </vs-button>
                         </div>
@@ -153,10 +168,10 @@
 
 <script>
     import {AgGridVue} from "ag-grid-vue";
-
+    import ImageUpload from "../../components/ImageUpload.vue";
     export default {
         components: {
-            AgGridVue
+            AgGridVue, ImageUpload
         },
         data() {
             return {
@@ -172,6 +187,8 @@
                     password: '',
                 },
                 deleteAble: true,
+                editableAble: true,
+                isEdit: false,
                 /*\User data*/
                 popupActive: false,
                 itemsPerPage: 10,
@@ -188,21 +205,23 @@
                 gridApi: null,
                 columnApi: null,
                 selectedRows: []
-
             }
         },
         /*computed*/
         computed: {
             allUsers() {
                 return this.$store.getters.allUsers
+            },
+            totalUsers() {
+                return this.$store.getters.totalUser
+            },
+            placeholder() {
+                return this.$store.getters.getAppUrl + 'images/placeholder/placeholder.png'
             }
         },
         /*end computed*/
-        created() {
-            if (!this.allUsers) {
-                this.$store.dispatch('fetchUsers')
-            }
-            console.log('created')
+        async created() {
+            await this.$store.dispatch('fetchUsers');
         },
         beforeMount() {
             /*set column deft to ag grid*/
@@ -220,20 +239,26 @@
             /*create grid option*/
             this.gridApi = this.gridOptions.api;
             this.columnApi = this.gridOptions.columnApi;
-            console.log('mounted');
-            if (!this.totalRecords) {
-                this.totalRecords = this.gridApi.getDisplayedRowCount();
-            }
         },
         updated() {
-            console.log('updated');
-            /*get total row count*/
-            if (!this.totalRecords) {
-                this.totalRecords = this.gridApi.getDisplayedRowCount();
+            let self = this;
+            if (!self.popupActive) {
+                self.resetField();
+                self.isEdit = false;
+            }
+            if (self.selectedRows.length !== 1) {
+                self.editableAble = true
+            }
+            if (self.selectedRows.length <= 0) {
+                self.deleteAble = true
             }
         },
         /*method*/
         methods: {
+            /*set thumbnail*/
+            setThumb(thumb) {
+                this.user.profile = thumb
+            },
             /*get row selection*/
             onSelectionChanged() {
                 let self = this;
@@ -241,27 +266,24 @@
                 self.selectedRows = [];
                 selectedRows.forEach(function (selectedRow, index) {
                     self.selectedRows.push(selectedRow.id);
-                    console.log(selectedRow)
                 });
                 self.deleteAble = self.selectedRows.length <= 0;
+                self.editableAble = self.selectedRows.length !== 1;
             },
             updateSearchQuery(val) {
                 this.gridApi.setQuickFilter(val);
             },
-            refreshCard(card) {
+            async refreshCard(card) {
                 card.removeRefreshAnimation(300);
                 /*clear search*/
                 this.updateSearchQuery(this.searchQuery = '');
                 /*clear filter*/
                 this.gridApi.setFilterModel(null);
+                await this.$store.dispatch('fetchUsers')
             },
             /*upload file*/
             uploadFile(data) {
                 this.user.profile = data.target.response;
-            },
-            /*upload file*/
-            removeFile() {
-                this.user.profile = null;
             },
             /*reset field*/
             resetField() {
@@ -275,11 +297,12 @@
                 this.user.password = '';
             },
             /*form submit*/
-            submitForm() {
+            async submitForm() {
                 let self = this;
                 this.$validator.validateAll().then(result => {
                     if (result && this.user.profile) {
-                        this.$store.dispatch('storeUser', this.user).then(function (data) {
+                        self.$vs.loading();
+                        self.$store.dispatch('storeUser', this.user).then(function (data) {
                             if (data) {
                                 self.$vs.notify({
                                     time: 4000,
@@ -301,6 +324,7 @@
                                     position: 'top-center'
                                 })
                             }
+                            self.$vs.loading.close();
                         });
                     }
                 })
@@ -318,13 +342,76 @@
             },
             async acceptAlert() {
                 let self = this;
-                this.$vs.notify({
-                    color: 'danger',
-                    title: 'រួចរាល់',
-                    text: 'បានលុបរួចរាល់'
+                const promises = self.selectedRows.map(async (id) => {
+                    await self.$store.dispatch('removeUser', id);
                 });
-                self.selectedRows.forEach(function (user_id) {
-                    self.$store.dispatch('removeUser', user_id);
+                self.$vs.loading();
+                await Promise.all(promises).then(function () {
+                    self.$vs.notify({
+                        color: 'success',
+                        title: 'រួចរាល់',
+                        text: 'បានលុបរួចរាល់',
+                        iconPack: 'feather',
+                        icon: 'icon-check',
+                        position: 'top-center'
+                    });
+                    self.$vs.loading.close();
+                })
+            },
+            editUser() {
+                let self = this;
+                let id = self.selectedRows[0];
+                self.$store.dispatch('editUser', id).then(function (data) {
+                    if (data) {
+                        self.user.profile = data.profile;
+                        self.user.gender = data.gender;
+                        self.user.role = data.role;
+                        self.user.type = data.type;
+                        self.user.name = data.name;
+                        self.user.email = data.email;
+                        self.user.telephone = data.telephone;
+                        self.user.password = '';
+                        self.popupActive = true;
+                        self.isEdit = true;
+                    }
+                })
+            },
+            /*form submit*/
+            async updateUser() {
+                let self = this;
+                this.$validator.validateAll().then(result => {
+                    if (result && this.user.profile) {
+                        self.$vs.loading();
+                        self.$store.dispatch('updateUser', {
+                            data: this.user,
+                            id: self.selectedRows[0]
+                        }).then(function (data) {
+                            if (data) {
+                                self.$vs.notify({
+                                    time: 4000,
+                                    title: 'ប្រតិបត្តិការជោគជ័យ',
+                                    text: 'ទិន្នន័យបានបន្ថែម',
+                                    color: 'success',
+                                    iconPack: 'feather',
+                                    icon: 'icon-check',
+                                    position: 'top-center'
+                                });
+                            } else {
+                                self.$vs.notify({
+                                    title: 'ប្រតិបត្តិការបរាជ័យ',
+                                    text: 'ទិន្នន័យមិនបានបន្ថែម',
+                                    color: 'danger',
+                                    iconPack: 'feather',
+                                    icon: 'icon-message-square',
+                                    position: 'top-center'
+                                })
+                            }
+                            self.$vs.loading.close();
+                            self.popupActive = false;
+                            self.selectedRows = [];
+                            self.popupActive = false
+                        });
+                    }
                 })
             },
         }

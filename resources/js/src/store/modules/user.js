@@ -1,19 +1,30 @@
 import axios from  'axios'
 const state = {
-    users:null
+    users:[],
+    totalUser:null
 };
 const getters = {
-    allUsers:(state) =>state.users
+    allUsers:(state) =>state.users,
+    totalUser:(state) =>state.users.length,
 };
 const actions = {
     async fetchUsers({commit}){
         const response = await axios.post(route('user.list'));
-        commit('setUsers',response.data);
+        commit('SET_USERS',response.data);
     },
     async storeUser({commit},data){
         try {
             const response = await axios.post(route('user.store'),data);
-            commit('addUser',response.data);
+            commit('ADD_USER',response.data);
+            return true;
+        }catch (e) {
+            return false
+        }
+    },
+    async updateUser({commit},data){
+        try {
+            const res = await axios.put(route('user.update',data.id),data.data);
+            commit('UPDATE_USER',res.data);
             return true;
         }catch (e) {
             return false
@@ -22,8 +33,16 @@ const actions = {
     async removeUser({commit},id){
         try {
             await axios.delete(route('user.destroy',id));
-            commit('removeUser',id);
+            commit('REMOVE_USER',id);
             return true;
+        }catch (e) {
+            return false
+        }
+    },
+    async editUser({},id){
+        try {
+            const res = await axios.get(route('user.edit',id));
+            return res.data
         }catch (e) {
             return false
         }
@@ -31,25 +50,33 @@ const actions = {
     async filterUser({commit},e){
         const limit = parseInt(e.target.options[e.target.options.selectedIndex].innerText);
         const response = await axios.get(`https://jsonplaceholder.typicode.com/users?_limit=${limit}`);
-        commit('setUsers',response.data);
-    },
-    async isCompleteUser({commit},id){
-        commit('markUser',id);
+        commit('SET_USER',response.data);
     }
 };
 const mutations = {
-    removeUser:function(state,id){
-        return state.users = state.users.filter(function (users) {
+    REMOVE_USER:function(state,id){
+        return state.users = state.users.filter(function (users,index) {
             return users.id !== id
         })
     },
-    setUsers:function(state,users){
+    UPDATE_USER:function(state,data){
+        let users = state.users;
+        let _index = null;
+        users.forEach(function (users,index) {
+            if (users.id === data.id) {
+                _index = index
+            }
+        });
+        users.splice(_index,1);
+        users[_index] = data;
+        return state.users = users;
+    },
+    SET_USERS:function(state,users){
         return state.users = users
     },
-    addUser:function(state,users) {
+    ADD_USER:function(state,users) {
         return state.users.unshift(users)
-    },
-    markUser:(state,id)=>state.users[id].completed = !state.users[id].completed,
+    }
 };
 export default {
     state,

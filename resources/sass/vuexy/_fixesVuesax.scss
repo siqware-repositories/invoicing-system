@@ -637,6 +637,11 @@
     padding: .35rem 0.3rem;
   }
 }
+.con-vs-tabs{
+  .con-slot-tabs{
+    width: auto !important;
+  }
+}
 
 // Remove after merge of: https://github.com/lusaxweb/vuesax/pull/637
 .vs-tabs--li {

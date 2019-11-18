@@ -46,4 +46,36 @@ class UserController extends Controller
     public function destroy($id){
         User::findOrFail($id)->delete();
     }
+    /*edit*/
+    public function edit($id){
+        return User::findOrFail($id);
+    }
+    /*update*/
+    public function update(Request $request,$id)
+    {
+        $update = User::findOrFail($id);
+        $input = $request->all();
+        if ($input['password']==null){
+            $input['password']=$update->password;
+        }
+        $request->validate([
+            'name' => 'required',
+            'profile' => 'required',
+            'telephone' => 'required',
+            'gender' => 'required',
+            'type' => 'required',
+            'role' => 'required',
+            'email' => 'required',
+        ]);
+        $update->name = $input['name'];
+        $update->profile = $input['profile'];
+        $update->telephone = $input['telephone'];
+        $update->gender = $input['gender'];
+        $update->type = $input['type'];
+        $update->role = $input['role'];
+        $update->email = $input['email'];
+        $update->password = Hash::make($input['password']);
+        $update->save();
+        return $update;
+    }
 }

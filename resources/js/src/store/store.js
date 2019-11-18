@@ -20,6 +20,7 @@ Vue.use(Vuex)
 
 //Module
 import users from './modules/user'
+import company from './modules/company'
 export default new Vuex.Store({
     getters,
     mutations,
@@ -27,6 +28,7 @@ export default new Vuex.Store({
     actions,
     modules: {
         users,
+        company,
     },
     strict: process.env.NODE_ENV !== 'production'
 })

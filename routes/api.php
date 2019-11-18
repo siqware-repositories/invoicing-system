@@ -19,4 +19,5 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 Route::post('/user-list','UserController@list')->name('user.list');
 Route::resource('/user','UserController');
-Route::post('/file-upload','FileUploadController@upload');
+Route::resource('/company','CompanyController');
+Route::post('/file-upload','FileUploadController@upload')->name('file.upload');
